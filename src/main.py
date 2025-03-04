@@ -48,6 +48,12 @@ def run_nicegui(command_queue: Queue, credentials_queue: Queue, status_queue: Qu
                 # 帳密區域
                 with ui.card().classes("w-full"):
                     with ui.expansion("登入資訊", value=True).classes("w-full"):
+                        login_url = ui.input(
+                            label="iLearning 網站網址",
+                            placeholder="https://lms2020.nchu.edu.tw/",
+                            value="https://lms2020.nchu.edu.tw/",
+                            validation={"不應包含空白": lambda value: " " not in value},
+                        )
                         account = ui.input(
                             label="請輸入學號",
                             placeholder="請輸入學號",
@@ -61,7 +67,7 @@ def run_nicegui(command_queue: Queue, credentials_queue: Queue, status_queue: Qu
                         )
                         ui.button(
                             "登入",
-                            on_click=lambda: credentials_queue.put((account.value, password.value)),
+                            on_click=lambda: credentials_queue.put((login_url.value, account.value, password.value)),
                         )
 
             # 右半邊：投影片下載
@@ -120,8 +126,9 @@ def run_nicegui(command_queue: Queue, credentials_queue: Queue, status_queue: Qu
 
                     # 新增進度條
                     progress_bar = ui.linear_progress().classes("w-full")
+                    progress_bar.props('color="primary"')
                     progress_bar.visible = False
-                    progress_text = ui.label().classes("text-sm text-gray-600")
+                    progress_text = ui.label().classes("text-sm text-gray-600 text-center w-full")
                     progress_text.visible = False
 
                     # 新增當前下載的簡報名稱
@@ -143,15 +150,17 @@ def run_nicegui(command_queue: Queue, credentials_queue: Queue, status_queue: Qu
                         progress_bar.visible = True
                         progress_text.visible = True
                         status_label.visible = True
+                        progress_bar.set_value(0)
+                        progress_text.text = "0%"
                     elif status.startswith("下載進度："):
                         # 從進度訊息中提取百分比
                         try:
                             percent = float(status.split("(")[1].split("%")[0])
                             progress_bar.set_value(percent / 100)
-                            progress_text.text = f"{percent:.0f}%"
+                            progress_text.text = f"{int(percent)}%"
+                            status_label.text = status
                         except (ValueError, IndexError):
-                            pass
-                        status_label.text = status
+                            status_label.text = status
                     elif status.startswith("簡報下載完成："):
                         current_slide_label.text = status
                         status_label.text = "下載完成！"
@@ -209,10 +218,13 @@ def run_selenium(command_queue: Queue, credentials_queue: Queue, status_queue: Q
                     os._exit(0)
 
                 # 檢查登入資訊
-                account, password = credentials_queue.get_nowait()
-                logging.info(f"Logging in with account: {account}")
-                browser.login(account, password)
-                status_queue.put("登入成功！")
+                login_url, account, password = credentials_queue.get_nowait()
+                logging.info(f"Logging in with account: {account} at {login_url}")
+                browser.login_url = login_url
+                if browser.login(account, password):
+                    status_queue.put("登入成功")
+                else:
+                    status_queue.put("登入失敗，請重新再試")
             except Empty:
                 pass  # Queue 為空是正常的，不需要記錄
             except Exception as e:

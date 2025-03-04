@@ -13,12 +13,11 @@ from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 
-LOGIN_URL = "https://lms2020.nchu.edu.tw/"
-
 
 class Browser:
-    def __init__(self, headless: bool = False):
+    def __init__(self, headless: bool = False, login_url: str = "https://lms2020.nchu.edu.tw/"):
         self.headless = headless
+        self.login_url = login_url
         self.ocr = ddddocr.DdddOcr()
 
         # 創建 Chrome 瀏覽器
@@ -55,7 +54,7 @@ class Browser:
         self.account = account
         self.password = password
 
-        self.driver.get(LOGIN_URL)
+        self.driver.get(self.login_url)
 
         # 輸入帳號
         account_input_field = self.driver.find_element(By.NAME, "account")
@@ -113,7 +112,7 @@ class Browser:
         slides = soup.find_all(class_="slide")
 
         images = [slide.find("img")["src"] for slide in slides]
-        full_urls = [f"{LOGIN_URL.removesuffix('/')}/{image.removeprefix('/')}" for image in images]
+        full_urls = [f"{self.login_url.removesuffix('/')}/{image.removeprefix('/')}" for image in images]
 
         try:
             slide_name = soup.find(class_="title").text.strip()  # pyright: ignore
@@ -139,7 +138,7 @@ class Browser:
 
             downloaded_images.append(image_path)
             if status_callback:
-                status_callback(f"下載進度：{i + 1}/{total_slides} ({((i + 1) / total_slides * 100):.1f}%)")
+                status_callback(f"下載進度：{i + 1}/{total_slides} ({((i + 1) / total_slides * 100):.0f}%)")
 
         # 生成 PDF 檔案
         if status_callback:
