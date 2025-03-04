@@ -1,32 +1,51 @@
 import os
+import subprocess
 from pathlib import Path
 
-import PyInstaller.__main__
 
-# 獲取虛擬環境的套件路徑
-PACKAGES_DIR = Path(".venv") / "Lib" / "site-packages"
+def build_with_nuitka():
+    # 獲取當前目錄
+    current_dir = Path(__file__).parent.absolute()
 
-# 確保輸出目錄存在
-os.makedirs("dist", exist_ok=True)
+    # 設定要編譯的 Python 檔案
+    main_file = str(current_dir / "src" / "main.py")
 
-# 創建必要的資料夾
-os.makedirs("local", exist_ok=True)
+    # 設定輸出目錄
+    output_dir = str(current_dir / "dist")
 
-# 打包參數
-options = [
-    "src/main.py",  # 主程式
-    "--name=iLearning-Cheater",  # 輸出檔名
-    "--clean",  # 清理暫存
-    f"--add-data={PACKAGES_DIR / 'ddddocr'};ddddocr",  # ddddocr 及其模型
-    f"--add-data={PACKAGES_DIR / 'nicegui'};nicegui",  # nicegui 及其靜態檔案
-    f"--add-data={PACKAGES_DIR / 'bs4'};bs4",  # BeautifulSoup4 及其資源
-    "--collect-all=nicegui",
-    "--collect-all=ddddocr",
-    "--collect-all=onnxruntime",
-    "--collect-all=bs4",  # 收集所有 bs4 相關文件
-]
+    # 獲取 PDM 虛擬環境的 Python 路徑
+    venv_python = os.path.join(current_dir, ".venv", "Scripts", "python.exe")
 
-# 執行打包
-PyInstaller.__main__.run(options)
+    # Nuitka 編譯命令
+    nuitka_command = [
+        venv_python,
+        "-m",
+        "nuitka",
+        "--output-filename=ilearning-ptt-downloader",
+        "--standalone",
+        "--nofollow-imports",
+        "--remove-output",
+        "--no-pyi-file",
+        "--assume-yes-for-downloads",
+        f"--output-dir={output_dir}",
+        "--include-module=pywin32_bootstrap",
+        # 包含必要的套件
+        "--include-package=selenium",
+        "--include-package=ddddocr",
+        "--include-package=nicegui",
+        "--include-package=bs4",
+        "--include-package=PIL",
+        "--include-package=reportlab",
+        main_file,
+    ]
 
-print("打包完成！檢查 dist 資料夾中的執行檔。")
+    # 執行編譯命令
+    try:
+        subprocess.run(nuitka_command, check=True)
+        print("編譯成功！")
+    except subprocess.CalledProcessError as e:
+        print(f"編譯失敗：{e}")
+
+
+if __name__ == "__main__":
+    build_with_nuitka()
