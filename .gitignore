@@ -207,3 +207,4 @@ pyrightconfig.json
 
 # avoid local files
 local/
+slides/
