@@ -3,7 +3,7 @@ import subprocess
 from pathlib import Path
 
 
-def build_with_nuitka():
+def build_with_pyinstaller():
     # 獲取當前目錄
     current_dir = Path(__file__).parent.absolute()
 
@@ -16,36 +16,34 @@ def build_with_nuitka():
     # 獲取 PDM 虛擬環境的 Python 路徑
     venv_python = os.path.join(current_dir, ".venv", "Scripts", "python.exe")
 
-    # Nuitka 編譯命令
-    nuitka_command = [
+    # PyInstaller 編譯命令
+    pyinstaller_command = [
         venv_python,
         "-m",
-        "nuitka",
-        "--output-filename=ilearning-ptt-downloader",
-        "--standalone",
-        "--nofollow-imports",
-        "--remove-output",
-        "--no-pyi-file",
-        "--assume-yes-for-downloads",
-        f"--output-dir={output_dir}",
-        "--include-module=pywin32_bootstrap",
+        "PyInstaller",
+        "--name=ilearning-ptt-downloader",
+        "--clean",
+        f"--distpath={output_dir}",
+        "--add-data=src;src",
+        "--collect-all=nicegui",
+        "--collect-all=ddddocr",
         # 包含必要的套件
-        "--include-package=selenium",
-        "--include-package=ddddocr",
-        "--include-package=nicegui",
-        "--include-package=bs4",
-        "--include-package=PIL",
-        "--include-package=reportlab",
+        "--hidden-import=selenium",
+        "--hidden-import=ddddocr",
+        "--hidden-import=nicegui",
+        "--hidden-import=bs4",
+        "--hidden-import=PIL",
+        "--hidden-import=reportlab",
         main_file,
     ]
 
     # 執行編譯命令
     try:
-        subprocess.run(nuitka_command, check=True)
+        subprocess.run(pyinstaller_command, check=True)
         print("編譯成功！")
     except subprocess.CalledProcessError as e:
         print(f"編譯失敗：{e}")
 
 
 if __name__ == "__main__":
-    build_with_nuitka()
+    build_with_pyinstaller()
